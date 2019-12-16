@@ -18,7 +18,8 @@ fun main() {
     val tickets = File(path)
         .process { row ->
             Ticket(
-                key = row["Issue key"] ?: return@process null,
+                key = (row["Issue key"] ?: return@process null)
+                    .padEnd(15),
                 summary = (row["Summary"] ?: return@process null)
                     .replace("[$platform]", "", true)
                     .replace(" - $platform", "", true)
@@ -46,7 +47,7 @@ fun main() {
     // 4. Print all instrumentation
     tickets
         .filter { it.ticketType is TicketType.Analytics }
-        .ifNotEmpty {  println("Instrumentation") }
+        .ifNotEmpty { println("Instrumentation") }
         .map { println("$instrumentationEmoji ${it.key} \t ${it.summary}") }
         .ifNotEmpty { println() }
 }
@@ -110,6 +111,7 @@ sealed class Platform {
     object Android : Platform() {
         override fun toString(): String = "android"
     }
+
     object iOS : Platform() {
         override fun toString(): String = "ios"
     }
@@ -118,7 +120,7 @@ sealed class Platform {
 /**
  * Maps string to a [Platform] type.
  */
-fun String.toPlatform(): Platform{
+fun String.toPlatform(): Platform {
     return when (toLowerCase()) {
         "android" -> Platform.Android
         "ios" -> Platform.iOS
