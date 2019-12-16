@@ -2,6 +2,12 @@ package com.akshay.captain
 
 import java.io.File
 
+//region Configuration
+private val changeEmoji = "✨"
+private val bugEmoji = "🐛"
+private val instrumentationEmoji = "📈"
+//endregion
+
 main()
 
 fun main() {
@@ -27,21 +33,21 @@ fun main() {
     tickets
         .filter { it.ticketType.isChange() }
         .ifNotEmpty { println("Changes") }
-        .map { println("✨ ${it.key} \t ${it.summary}") }
+        .map { println("$changeEmoji ${it.key} \t ${it.summary}") }
         .ifNotEmpty { println() }
 
     // 3. Print all bug fixes
     tickets
         .filter { it.ticketType is TicketType.Bug }
         .ifNotEmpty { println("Bug fixes") }
-        .map { println("🐛 ${it.key} \t ${it.summary}") }
+        .map { println("$bugEmoji ${it.key} \t ${it.summary}") }
         .ifNotEmpty { println() }
 
-    // 3. Print all instrumentation
+    // 4. Print all instrumentation
     tickets
         .filter { it.ticketType is TicketType.Analytics }
         .ifNotEmpty {  println("Instrumentation") }
-        .map { println("📈 ${it.key} \t ${it.summary}") }
+        .map { println("$instrumentationEmoji ${it.key} \t ${it.summary}") }
         .ifNotEmpty { println() }
 }
 
