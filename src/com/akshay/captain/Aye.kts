@@ -15,7 +15,8 @@ fun main() {
                 key = row["Issue key"] ?: return@process null,
                 summary = (row["Summary"] ?: return@process null)
                     .replace("[$platform]", "", true)
-                    .replace(" - $platform", "", true),
+                    .replace(" - $platform", "", true)
+                    .trim(),
                 ticketType = row["Issue Type"].orEmpty().toTicketType(platform)
             )
         }
