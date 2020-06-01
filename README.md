@@ -10,11 +10,11 @@ Usage
 -----  
 
 ```
-$  kotlinc -script Aye.kts <path-to-csv-file.csv> <platform>
+$  kotlin Aye.kts <path-to-csv-file.csv> <platform>
 
 Example:
 
-$  kotlinc -script Aye.kts ./sample.csv Android
+$  kotlin Aye.kts ./sample.csv Android
 
 ====================
 
