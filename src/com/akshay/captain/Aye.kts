@@ -2,10 +2,32 @@ package com.akshay.captain
 
 import java.io.File
 
+/**
+ * The changelog will be following the template below 👇 to ensure consistency and have a common language among everyone.
+ *
+ * Following is description of what each section means, what it will contain and its emoji 😛
+ * ✨ Changes section will include product-driven tickets
+ * 🤖 Tech changes section will include tickets from the Android Chapter board
+ * 🐛 Bug fixes section will includes bug tickets
+ * 📈 Instrumentation section will include Analytics tickets
+ * 🏳 A/B test will include tickets related to an A/B test when they are released for the first time
+ * 🏴 Included but not visible section will include all tickets that are behind a feature flag, or disabled for the end use
+ *
+ * Example:
+ * ✨ Update app colors
+ * 🤖 Improve app performance
+ * 🐛 Fix app crashing on launch
+ * 📈 Send event on app launch
+ * 🏳 Implement paywall for content
+ * 🏴 CBC ticket
+ */
+
 //region Configuration
 private val changeEmoji = "✨"
+private val techChangesEmoji = "🤖"
 private val bugEmoji = "🐛"
 private val instrumentationEmoji = "📈"
+private val includedButNotVisibleEmoji = "🏴"
 //endregion
 
 main()
@@ -24,7 +46,7 @@ fun main() {
                     .replace("[$platform]", "", true)
                     .replace(" - $platform", "", true)
                     .trim(),
-                ticketType = row["Issue Type"].orEmpty().toTicketType(platform)
+                ticketType = row["Issue Type"].orEmpty().toTicketType(platform, row["Labels"].orEmpty())
             )
         }
         .mapNotNull { it }
@@ -37,19 +59,30 @@ fun main() {
         .map { println("$changeEmoji ${it.key} \t ${it.summary}") }
         .ifNotEmpty { println() }
 
-    // 3. Print all bug fixes
+    // 2. Print all tech changes
+    tickets
+        .filter { it.ticketType is TicketType.Chapter }
+        .ifNotEmpty { println("Tech changes") }
+        .map { println("$techChangesEmoji ${it.key} \t ${it.summary}") }
+        .ifNotEmpty { println() }
+
+    // 4. Print all bug fixes
     tickets
         .filter { it.ticketType is TicketType.Bug }
         .ifNotEmpty { println("Bug fixes") }
         .map { println("$bugEmoji ${it.key} \t ${it.summary}") }
         .ifNotEmpty { println() }
 
-    // 4. Print all instrumentation
+    // 5. Print all instrumentation
     tickets
         .filter { it.ticketType is TicketType.Analytics }
         .ifNotEmpty { println("Instrumentation") }
         .map { println("$instrumentationEmoji ${it.key} \t ${it.summary}") }
         .ifNotEmpty { println() }
+
+    // 6. Just print included but not visible title
+    println("Included but not visible")
+    println("TODO: Move the tickets from above or delete this section if none")
 }
 
 //region Data structure
@@ -73,6 +106,7 @@ sealed class TicketType {
     object SubTask : TicketType()
     object Improvement : TicketType()
     object Bug : TicketType()
+    object Chapter : TicketType()
     data class Unknown(val type: String) : TicketType()
 
     /**
@@ -93,10 +127,13 @@ sealed class TicketType {
 /**
  * Maps string to a [TicketType]
  */
-fun String.toTicketType(platform: Platform): TicketType {
+fun String.toTicketType(platform: Platform, labels: String): TicketType {
     return when (this) {
         "Analytics:${platform}" -> TicketType.Analytics
-        "Story:${platform}" -> TicketType.Story
+        "Story:${platform}" -> when {
+            labels.contains(platform.toString(), true) -> TicketType.Chapter
+            else -> TicketType.Story
+        }
         "Sub-Task:${platform}" -> TicketType.SubTask
         "Improvement:${platform}" -> TicketType.Improvement
         "Bug:${platform}" -> TicketType.Bug
