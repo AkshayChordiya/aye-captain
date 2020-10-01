@@ -40,13 +40,13 @@ fun main() {
     val tickets = File(path)
         .process { row ->
             Ticket(
-                key = (row["Issue key"] ?: return@process null)
+                key = (row["Issue key"]?.first() ?: return@process null)
                     .padEnd(15),
-                summary = (row["Summary"] ?: return@process null)
+                summary = (row["Summary"]?.first() ?: return@process null)
                     .replace("[$platform]", "", true)
                     .replace(" - $platform", "", true)
                     .trim(),
-                ticketType = row["Issue Type"].orEmpty().toTicketType(platform, row["Labels"].orEmpty())
+                ticketType = row["Issue Type"]?.first().orEmpty().toTicketType(platform, row["Labels"] ?: emptyList())
             )
         }
         .mapNotNull { it }
@@ -127,11 +127,11 @@ sealed class TicketType {
 /**
  * Maps string to a [TicketType]
  */
-fun String.toTicketType(platform: Platform, labels: String): TicketType {
+fun String.toTicketType(platform: Platform, labels: List<String>): TicketType {
     return when (this) {
         "Analytics:${platform}" -> TicketType.Analytics
         "Story:${platform}" -> when {
-            labels.contains(platform.toString(), true) -> TicketType.Chapter
+            labels.toString().contains(platform.toString(), true) -> TicketType.Chapter
             else -> TicketType.Story
         }
         "Sub-Task:${platform}" -> TicketType.SubTask
@@ -185,7 +185,7 @@ fun <E> List<E>.ifNotEmpty(function: () -> Unit): List<E> {
  * Do not use this function for huge files, since it's a limitation
  * of [readLines]
  */
-fun <T> File.process(processor: (Map<String, String>) -> T): List<T> {
+fun <T> File.process(processor: (Map<String, List<String>>) -> T): List<T> {
     val bom = "\uFEFF"
     val header = readLines().firstOrNull()
         ?.replace(bom, "")
@@ -195,8 +195,22 @@ fun <T> File.process(processor: (Map<String, String>) -> T): List<T> {
     return readLines()
         .drop(1)
         .map { it.split(",") }
-        .map { header.zip(it).toMap() }
+        .map { header.zip(it).toDublicateMap() }
         .map(processor)
         .toList()
 }
 //endregion
+
+fun <K, V> Iterable<Pair<K, V>>.toDublicateMap(): Map<K, List<V>> {
+    val map = mutableMapOf<K, List<V>>()
+    forEach { (key, value) ->
+        val containsKey = map.containsKey(key)
+        if (containsKey) {
+            val existingValue = map.getValue(key)
+            map[key] = existingValue + value
+        } else {
+            map[key] = listOf(value)
+        }
+    }
+    return map
+}
