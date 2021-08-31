@@ -40,15 +40,12 @@ private val bugFixes = "Bug fixes"
 private val instrumentation = "Instrumentation"
 private val labels = "Labels"
 
-//argument handler
-private val platform =
-    args.getOrNull(1)?.toPlatform() ?: error("Missing platform type, it should be either Android or iOS")
-
 main()
 
 fun main() {
     val path = args.getOrNull(0) ?: error("Missing path to the source CSV file")
     val releaseNotes = mutableListOf<String>()
+    val platform = args.getOrNull(1)?.toPlatform() ?: error("Missing platform type, it should be either Android or iOS")
 
     // 1. Get list of tickets
     val tickets = File(path)
@@ -62,8 +59,7 @@ fun main() {
                     .trim(),
                 ticketType = row[issueType]?.first().orEmpty().toTicketType(platform, row[labels] ?: emptyList())
             )
-        }
-        .mapNotNull { it }
+        }.mapNotNull { it }
 
 
     // 2. Print all changes
@@ -93,31 +89,9 @@ fun main() {
     val result = releaseNotes.toList().joinToString(separator = "\n")
     println(result)
 
-    //6. Ask question for announcement
-    askQuestion(result)
-    //7. Just print included but not visible title
+    //6. Just print included but not visible title
     println("Included but not visible")
     println("TODO: Move the tickets from above or delete this section if none")
-}
-
-fun resultResponse(result: String) {
-    val response = readLine().toString().lowercase()
-    if (response == "y") {
-        //slack announcement
-    } else if (response == "n") {
-        //termainate
-    } else {
-        askQuestion(result, true)
-    }
-}
-
-fun askQuestion(result: String, isInputWrong: Boolean = false) {
-    if (isInputWrong) {
-        println("Please enter a correct input. Press Y/N")
-    } else {
-        println("Captain, do you want me to announce to fellow Cluebies on your behalf? Press Y/N")
-    }
-    resultResponse(result)
 }
 
 //region Data structure
