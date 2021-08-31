@@ -30,23 +30,32 @@ private val instrumentationEmoji = "📈"
 private val includedButNotVisibleEmoji = "🏴"
 //endregion
 
+//region constant
+private val issueKey = "Issue key"
+private val issueType = "Issue Type"
+private val summary = "Summary"
+private val changes = "Changes"
+private val techChanges = "Tech changes"
+private val bugFixes = "Bug fixes"
+private val instrumentation = "Instrumentation"
+
 main()
 
 fun main() {
     val path = args.getOrNull(0) ?: error("Missing path to the source CSV file")
     val platform = args.getOrNull(1)?.toPlatform() ?: error("Missing platform type, it should be either Android or iOS")
-
+    val releaseNotes = mutableListOf<String>()
     // 1. Get list of tickets
     val tickets = File(path)
         .process { row ->
             Ticket(
-                key = (row["Issue key"]?.first() ?: return@process null)
+                key = (row[issueKey]?.first() ?: return@process null)
                     .padEnd(15),
-                summary = (row["Summary"]?.first() ?: return@process null)
+                summary = (row[summary]?.first() ?: return@process null)
                     .replace("[$platform]", "", true)
                     .replace(" - $platform", "", true)
                     .trim(),
-                ticketType = row["Issue Type"]?.first().orEmpty().toTicketType(platform, row["Labels"] ?: emptyList())
+                ticketType = row[issueType]?.first().orEmpty().toTicketType(platform, row["Labels"] ?: emptyList())
             )
         }
         .mapNotNull { it }
@@ -55,31 +64,33 @@ fun main() {
     // 2. Print all changes
     tickets
         .filter { it.ticketType.isChange() }
-        .ifNotEmpty { println("Changes") }
-        .map { println("$changeEmoji ${it.key} \t ${it.summary}") }
+        .ifNotEmpty { releaseNotes.add(changes) }
+        .map { releaseNotes.add("$changeEmoji ${it.key} \t ${it.summary}") }
         .ifNotEmpty { println() }
 
     // 2. Print all tech changes
     tickets
         .filter { it.ticketType is TicketType.Chapter }
-        .ifNotEmpty { println("Tech changes") }
-        .map { println("$techChangesEmoji ${it.key} \t ${it.summary}") }
+        .ifNotEmpty { releaseNotes.add(techChanges) }
+        .map { releaseNotes.add("$techChangesEmoji ${it.key} \t ${it.summary}") }
         .ifNotEmpty { println() }
 
     // 4. Print all bug fixes
     tickets
         .filter { it.ticketType is TicketType.Bug }
-        .ifNotEmpty { println("Bug fixes") }
-        .map { println("$bugEmoji ${it.key} \t ${it.summary}") }
+        .ifNotEmpty { releaseNotes.add(bugFixes) }
+        .map { releaseNotes.add("$bugEmoji ${it.key} \t ${it.summary}") }
         .ifNotEmpty { println() }
 
     // 5. Print all instrumentation
     tickets
         .filter { it.ticketType is TicketType.Analytics }
-        .ifNotEmpty { println("Instrumentation") }
-        .map { println("$instrumentationEmoji ${it.key} \t ${it.summary}") }
+        .ifNotEmpty { releaseNotes.add(instrumentation) }
+        .map { releaseNotes.add("$instrumentationEmoji ${it.key} \t ${it.summary}") }
         .ifNotEmpty { println() }
 
+    val x = releaseNotes.joinToString (separator = "\n")
+    println(x)
     // 6. Just print included but not visible title
     println("Included but not visible")
     println("TODO: Move the tickets from above or delete this section if none")
@@ -158,7 +169,7 @@ sealed class Platform {
  * Maps string to a [Platform] type.
  */
 fun String.toPlatform(): Platform {
-    return when (toLowerCase()) {
+    return when (lowercase()) {
         "android" -> Platform.Android
         "ios" -> Platform.iOS
         else -> error("The platform type needs to be either Android or iOS")
