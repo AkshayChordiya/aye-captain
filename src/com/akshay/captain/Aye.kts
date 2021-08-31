@@ -38,6 +38,7 @@ private val changes = "Changes"
 private val techChanges = "Tech changes"
 private val bugFixes = "Bug fixes"
 private val instrumentation = "Instrumentation"
+private val labels = "Labels"
 
 main()
 
@@ -56,7 +57,7 @@ fun main() {
                     .replace("[$platform]", "", true)
                     .replace(" - $platform", "", true)
                     .trim(),
-                ticketType = row[issueType]?.first().orEmpty().toTicketType(platform, row["Labels"] ?: emptyList())
+                ticketType = row[issueType]?.first().orEmpty().toTicketType(platform, row[labels] ?: emptyList())
             )
         }
         .mapNotNull { it }
