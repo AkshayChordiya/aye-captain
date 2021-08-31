@@ -59,7 +59,8 @@ fun main() {
                     .trim(),
                 ticketType = row[issueType]?.first().orEmpty().toTicketType(platform, row[labels] ?: emptyList())
             )
-        }.mapNotNull { it }
+        }
+        .mapNotNull { it }
 
 
     // 2. Print all changes
