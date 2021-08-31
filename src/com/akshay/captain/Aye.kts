@@ -68,28 +68,24 @@ fun main() {
         .filter { it.ticketType.isChange() }
         .ifNotEmpty { releaseNotes.add(changes) }
         .map { releaseNotes.add("$changeEmoji ${it.key} \t ${it.summary}") }
-        .ifNotEmpty { println() }
 
     // 2. Print all tech changes
     tickets
         .filter { it.ticketType is TicketType.Chapter }
         .ifNotEmpty { releaseNotes.add(techChanges) }
         .map { releaseNotes.add("$techChangesEmoji ${it.key} \t ${it.summary}") }
-        .ifNotEmpty { println() }
 
     // 4. Print all bug fixes
     tickets
         .filter { it.ticketType is TicketType.Bug }
         .ifNotEmpty { releaseNotes.add(bugFixes) }
         .map { releaseNotes.add("$bugEmoji ${it.key} \t ${it.summary}") }
-        .ifNotEmpty { println() }
 
     // 5. Print all instrumentation
     tickets
         .filter { it.ticketType is TicketType.Analytics }
         .ifNotEmpty { releaseNotes.add(instrumentation) }
         .map { releaseNotes.add("$instrumentationEmoji ${it.key} \t ${it.summary}") }
-        .ifNotEmpty { println() }
 
     val x = releaseNotes.joinToString (separator = "\n")
     println(x)
