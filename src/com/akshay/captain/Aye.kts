@@ -45,6 +45,7 @@ fun main() {
     val path = args.getOrNull(0) ?: error("Missing path to the source CSV file")
     val platform = args.getOrNull(1)?.toPlatform() ?: error("Missing platform type, it should be either Android or iOS")
     val releaseNotes = mutableListOf<String>()
+
     // 1. Get list of tickets
     val tickets = File(path)
         .process { row ->
