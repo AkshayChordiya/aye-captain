@@ -85,14 +85,14 @@ fun main() {
     println(result)
 
     //6. Ask question for announcement
-    askQuestion(result, false, webhookUrls)
+    askQuestion(result, false, webhookUrls,platform)
 }
 
-fun resultResponse(result: String, webhookUrls: List<Url>) {
+fun resultResponse(result: String, webhookUrls: List<Url>, platform: Platform) {
     when (readLine().toString().lowercase()) {
-        "y" -> triggerAnnouncement(result, webhookUrls)
+        "y" -> triggerAnnouncement(result, webhookUrls,platform)
         "n" -> println("Ciao!")//terminate
-        else -> askQuestion(result, true, webhookUrls)
+        else -> askQuestion(result, true, webhookUrls, platform)
 
     }
 }
@@ -100,13 +100,14 @@ fun resultResponse(result: String, webhookUrls: List<Url>) {
 fun askQuestion(
     result: String,
     isInputWrong: Boolean = false,
-    webhookUrls: List<Url>
+    webhookUrls: List<Url>,
+    platform: Platform
 ) {
     when {
         isInputWrong -> println("Please enter a correct input. Press Y/N")
         else -> println("Captain, do you want me to announce to fellow Cluebies on your behalf? Press Y/N")
     }
-    resultResponse(result, webhookUrls)
+    resultResponse(result, webhookUrls,platform)
 }
 //region Data structure
 
@@ -248,7 +249,7 @@ fun <K, V> Iterable<Pair<K, V>>.toDublicateMap(): Map<K, List<V>> {
     return map
 }
 
-fun triggerAnnouncement(result: String, webhookUrls: List<Url>) {
+fun triggerAnnouncement(result: String, webhookUrls: List<Url>, platform: Platform) {
     println("Great! Let us start the announcement")
 
     //0. Ask for captain and co-captain name along with the version
@@ -260,7 +261,7 @@ fun triggerAnnouncement(result: String, webhookUrls: List<Url>) {
     val releaseVersion = readLine().toString()
 
     val announcementHeader =
-        "Hey, for this release, $captain is the release captain and $cocaptain  is co-captain. Here are the changes in version $releaseVersion"
+        "Hey, for this release in $platform, $captain is the release captain and $cocaptain  is co-captain. Here are the changes in version $releaseVersion"
     val output = "$announcementHeader\n\n$result"
 
     //slack announcement
