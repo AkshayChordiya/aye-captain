@@ -1,5 +1,7 @@
-package com.akshay.captain
+@file:Repository("https://repo1.maven.org/maven2/")
+@file:DependsOn("com.slack.api:slack-api-client:1.11.0")
 
+import com.slack.api.Slack
 import java.io.File
 
 /**
@@ -40,28 +42,20 @@ private val bugFixes = "Bug fixes"
 private val instrumentation = "Instrumentation"
 private val labels = "Labels"
 
+//argument handler
 main()
 
 fun main() {
+    val platform = args.getOrNull(2)?.toPlatform() ?: error("Missing platform type, it should be either Android or iOS")
     val path = args.getOrNull(0) ?: error("Missing path to the source CSV file")
+    val webhookPath = args.getOrNull(1) ?: error("Missing path to the source CSV file")
     val releaseNotes = mutableListOf<String>()
-    val platform = args.getOrNull(1)?.toPlatform() ?: error("Missing platform type, it should be either Android or iOS")
+
+    // 0. Get list of Urls
+    val webhookUrls = generateUrls(webhookPath).filter { it.platform == platform.toString() }
 
     // 1. Get list of tickets
-    val tickets = File(path)
-        .process { row ->
-            Ticket(
-                key = (row[issueKey]?.first() ?: return@process null)
-                    .padEnd(15),
-                summary = (row[summary]?.first() ?: return@process null)
-                    .replace("[$platform]", "", true)
-                    .replace(" - $platform", "", true)
-                    .trim(),
-                ticketType = row[issueType]?.first().orEmpty().toTicketType(platform, row[labels] ?: emptyList())
-            )
-        }
-        .mapNotNull { it }
-
+    val tickets = generateTickets(path, platform)
 
     // 2. Print all changes
     tickets
@@ -69,7 +63,7 @@ fun main() {
         .ifNotEmpty { releaseNotes.add(changes) }
         .map { releaseNotes.add("$changeEmoji ${it.key} \t ${it.summary}") }
 
-    // 2. Print all tech changes
+    // 3. Print all tech changes
     tickets
         .filter { it.ticketType is TicketType.Chapter }
         .ifNotEmpty { releaseNotes.add(techChanges) }
@@ -90,11 +84,31 @@ fun main() {
     val result = releaseNotes.toList().joinToString(separator = "\n")
     println(result)
 
-    //6. Just print included but not visible title
-    println("Included but not visible")
-    println("TODO: Move the tickets from above or delete this section if none")
+    //6. Ask question for announcement
+    askQuestion(result, false, webhookUrls,platform)
 }
 
+fun resultResponse(result: String, webhookUrls: List<Url>, platform: Platform) {
+    when (readLine().toString().lowercase()) {
+        "y" -> triggerAnnouncement(result, webhookUrls,platform)
+        "n" -> println("Ciao!")//terminate
+        else -> askQuestion(result, true, webhookUrls, platform)
+
+    }
+}
+
+fun askQuestion(
+    result: String,
+    isInputWrong: Boolean = false,
+    webhookUrls: List<Url>,
+    platform: Platform
+) {
+    when {
+        isInputWrong -> println("Please enter a correct input. Press Y/N")
+        else -> println("Captain, do you want me to announce to fellow Cluebies on your behalf? Press Y/N")
+    }
+    resultResponse(result, webhookUrls,platform)
+}
 //region Data structure
 
 /**
@@ -105,6 +119,15 @@ data class Ticket(
     val key: String,
     val summary: String,
     val ticketType: TicketType
+)
+
+/**
+ * Describes the representation
+ * of a "Webhook Url"
+ */
+data class Url(
+    val url: String,
+    val platform: String
 )
 
 /**
@@ -203,6 +226,7 @@ fun <T> File.process(processor: (Map<String, List<String>>) -> T): List<T> {
         ?: throw Exception("This file does not contain a valid header")
 
     return readLines()
+        .asSequence()
         .drop(1)
         .map { it.split(",") }
         .map { header.zip(it).toDublicateMap() }
@@ -223,4 +247,53 @@ fun <K, V> Iterable<Pair<K, V>>.toDublicateMap(): Map<K, List<V>> {
         }
     }
     return map
+}
+
+fun triggerAnnouncement(result: String, webhookUrls: List<Url>, platform: Platform) {
+    println("Great! Let us start the announcement")
+
+    //0. Ask for captain and co-captain name along with the version
+    println("Who is the captain for the release?")
+    val captain = readLine().toString()
+    println("Great! Now, who would be your co-captain?")
+    val cocaptain = readLine().toString()
+    println("And lastly, what is the version we are releasing?")
+    val releaseVersion = readLine().toString()
+
+    val announcementHeader =
+        "Hey, for this release in $platform, $captain is the release captain and $cocaptain  is co-captain. Here are the changes in version $releaseVersion"
+    val output = "$announcementHeader\n\n$result"
+
+    //slack announcement
+    val payload = "{\"text\":\"$output\"}"
+    webhookUrls.forEach {
+        Slack.getInstance().send(it.url, payload)
+    }
+}
+
+fun generateUrls(webhookPath: String): List<Url> {
+    return File(webhookPath)
+        .process { urls ->
+            Url(
+                url = urls["URL"]?.first() ?: return@process null,
+                platform = urls["platform"]?.first() ?: return@process null
+            )
+        }
+        .mapNotNull { it }
+}
+
+fun generateTickets(path: String, platform: Platform): List<Ticket> {
+    return File(path)
+        .process { row ->
+            Ticket(
+                key = (row[issueKey]?.first() ?: return@process null)
+                    .padEnd(15),
+                summary = (row[summary]?.first() ?: return@process null)
+                    .replace("[$platform]", "", true)
+                    .replace(" - $platform", "", true)
+                    .trim(),
+                ticketType = row[issueType]?.first().orEmpty().toTicketType(platform, row[labels] ?: emptyList())
+            )
+        }
+        .mapNotNull { it }
 }
